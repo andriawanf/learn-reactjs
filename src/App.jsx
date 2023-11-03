@@ -6,27 +6,22 @@ function Square({ value, onClickSquare }) {
   return <button className="square" onClick={onClickSquare}>{value}</button>;
 }
 
-export default function App() {
-  // lisfting state
-  const [squares, setSquares] = useState(Array(9).fill(null));
-
-  const [xIsNext, setXIsNext] = useState(true);
-
+function Board({xIsNext, squares, onPlay}) {
   function handleClick(i) {
     // cek jika kotak sudah ada isinya 
     if (squares[i] || calculateWinner(squares)) return;
 
     const nextSquares = squares.slice();
     nextSquares[i] = (xIsNext) ? 'X' : 'O';
-    setSquares(nextSquares);
-    setXIsNext(!xIsNext); // ubah menjadi 'O' untuk player selanjutnya
+
+    onPlay(nextSquares);
   }
 
   const winner = calculateWinner(squares);
 
   // Menampilkan next player dan pemenang
   let status = '';
-  status = (winner) ? 'Pemenang: ' + winner : 'Pemain Selanjutnya: ' + (xIsNext ? 'X':'O');
+  status = winner === 'draw' ? "Game Draw" : (winner) ? 'Pemenang: ' + winner : 'Pemain Selanjutnya: ' + (xIsNext ? 'X':'O');
 
   return (
     <>
@@ -43,6 +38,56 @@ export default function App() {
         <Square value={squares[8]} onClickSquare={() => handleClick(8)} />
       </div>
     </>
+  );
+}
+
+export default function Game() {
+  const [history, setHistory] = useState([Array(9).fill(null)]); // Membuat array dalam array history 
+  const [currentMove, setCurrentMove] = useState(0); // Untuk menyimpan data player berada di move/index ke berapa
+  // Buat array kondisi sekarang seperti apa
+  const currenSquares = history[currentMove];
+  const xIsNext = currentMove % 2 === 0;
+
+  function jumpTo(nextMove){
+    setCurrentMove(nextMove);
+  }
+  
+  // buat fungsi untuk menghandle hasil dari board
+  function handlePlay(nextSquares){
+    // Buat array baru yang menampung data history dari keadaan awal sampai dengan keadaan player sekarang 
+    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+    setHistory(nextHistory);
+    setCurrentMove(nextHistory.length - 1);
+  }
+
+  // buat tombol-tombol dari hasil mapping array history
+  const move = history.map((squares, index) => {
+    let description = '';
+
+    if(index > 0){
+      description = 'Go to move #' + index;
+    }else{
+      description = 'Go to game start';
+    }
+
+    return (
+      <li key={index}>
+        <button onClick={() => jumpTo(index)}>{description}</button>
+      </li>
+    );
+  });
+
+  return (
+    <div className="game">
+      <div className="game-board">
+        <Board xIsNext = {xIsNext} squares={currenSquares} onPlay={handlePlay} />
+      </div>
+      <div className="game-info">
+        <ol>
+          {move}
+        </ol>
+      </div>
+    </div>
   );
 }
 
@@ -63,9 +108,8 @@ function calculateWinner(squares) {
   for (let i = 0; i < rules.length; i++) {
     const [a, b, c] = rules[i];
 
-    if (squares[a] && squares[a] === squares[b] && squares[c]) {
-      return squares[a];
-    }
+    if (squares[a] == squares[b] && squares[b] == squares[c]) return squares[a];
+    if(squares.every((squares) => (squares))) return 'draw';
   }
 
   return false;
